@@ -1,6 +1,8 @@
 from bitstring import BitArray
 import cv2
 
+from functions.AudioConverter import *
+
 
 def audio_to_binary(image_path, filename):
     """
@@ -11,8 +13,20 @@ def audio_to_binary(image_path, filename):
     Returns:
         str: Stringa di bit rappresentante i dati del file audio.
     """
-    
     SEP = "FINE"    # Separatore che indica la fine dei dati
+    
+    data, filename = check_and_reduce_bitrate(image_path, filename, SEP)
+    ext = filename.split(".")[1]  # Estrai l'estensione del file audio
+    
+    # Converte i dati in una stringa binaria
+    # binary_Data = lunghezza estensione + estensione + dati audio
+    binary_data = format(len(ext), '08b') + ''.join(format(ord(l), '08b') for l in ext) + data.bin
+    binary_data += ''.join(format(ord(l), '08b') for l in SEP)
+    
+    return binary_data
+
+
+def check_and_reduce_bitrate(image_path, filename, SEP):
     data = BitArray(bytes=open(filename,'rb').read())  # Legge il file audio in formato binario
 
     # Carica l'immagine per determinare la capacità di archiviazione
@@ -26,13 +40,15 @@ def audio_to_binary(image_path, filename):
 
     # Controlla se il file audio è troppo grande per essere nascosto nell'immagine
     if data_size_to_bytes > max_data_size_to_bytes:
-        raise ValueError(f"Data is too large to embed. Maximum size: {max_data_size_to_bytes} bytes.")
+        bitrate = get_bitrate(filename)
+        if bitrate > 128:
+            dot_index = filename.rfind(".")
+            reduced_filename = filename[:dot_index] + "_ridotto" + filename[dot_index:]
+            filename = reduce_bitrate_128k(filename, reduced_filename, bitrate="128k")
+            
+            data = BitArray(bytes=open(filename,'rb').read())
+            data_size_to_bytes = (len(data) / 8) + len(SEP)
+            if data_size_to_bytes > max_data_size_to_bytes:
+                raise ValueError(f"Data is too large to embed. Maximum size: {max_data_size_to_bytes} bytes.")
     
-    ext = filename.split(".")[1]  # Estrai l'estensione del file audio
-    
-    # Converte i dati in una stringa binaria
-    # binary_Data = lunghezza estensione + estensione + dati audio
-    binary_data = format(len(ext), '08b') + ''.join(format(ord(l), '08b') for l in ext) + data.bin
-    binary_data += ''.join(format(ord(l), '08b') for l in SEP)
-    
-    return binary_data
+    return data, filename

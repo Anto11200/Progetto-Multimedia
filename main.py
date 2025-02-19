@@ -1,5 +1,6 @@
 from functions.AudioToBinary import *
 from functions.Steganography import *
+from functions.AudioConverter import *
 
 
 if __name__=="__main__":

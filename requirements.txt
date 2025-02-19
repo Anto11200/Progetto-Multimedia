@@ -2,3 +2,8 @@ bitstring
 numpy
 opencv-python
 tqdm
+soundfile
+pydub
+ffmpeg
+scipy
+matplotlib
